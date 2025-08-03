@@ -11,4 +11,7 @@ typer
 pandas
 xgboost
 lightgbm
+scikit-learn
+mlflow
+dagshub
 -e .
