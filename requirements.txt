@@ -12,6 +12,6 @@ pandas
 xgboost
 lightgbm
 scikit-learn
-mlflow
-dagshub
+dagshub==0.5.8
+mlflow==2.22.0
 -e .
