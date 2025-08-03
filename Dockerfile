@@ -7,8 +7,8 @@ RUN pip install -r requirements.txt
 
 # Copiar código da função e artefatos do modelo para o diretório do Lambda
 COPY app.py ${LAMBDA_TASK_ROOT}
-COPY model/model.pkl ${LAMBDA_TASK_ROOT}/model/
-COPY model/model_metadata.json ${LAMBDA_TASK_ROOT}/model/
+COPY models/model.pkl ${LAMBDA_TASK_ROOT}/models/
+COPY models/model_metadata.json ${LAMBDA_TASK_ROOT}/models/
 
 # Definir o comando de inicialização (handler do Lambda)
 CMD [ "app.handler" ]
