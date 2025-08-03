@@ -1,53 +1,100 @@
 import json
 import logging
-import joblib  # ou pickle, dependendo de como o modelo foi salvo
+import joblib
+import pickle
+import os
+import numpy as np
 
-# Configuração básica de logging
 logging.basicConfig(level=logging.INFO)
 
-# Carregando o modelo e metadados na inicialização do container:
-model = joblib.load("model/model.pkl")
-with open("model/model_metadata.json", "r") as f:
-    metadata = json.load(f)
-logging.info("Modelo carregado com sucesso.")
-# (Opcional: você pode usar dados de `metadata`, ex: imprimir versão do modelo)
-if "model_version" in metadata:
-    logging.info(f"Versão do modelo: {metadata['model_version']}")
+# Diretório onde fica o modelo
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 
-# Função handler do Lambda
+# Carrega modelo (tentando joblib e pickle)
+model = None
+metadata = {}
+
+try:
+    try:
+        model = joblib.load(os.path.join(MODEL_DIR, "model.pkl"))
+        logging.info("Modelo carregado com sucesso (joblib).")
+    except Exception as e_joblib:
+        logging.warning(f"Falha ao carregar com joblib: {e_joblib}. Tentando pickle...")
+        with open(os.path.join(MODEL_DIR, "model.pkl"), "rb") as f:
+            model = pickle.load(f)
+        logging.info("Modelo carregado com sucesso (pickle).")
+
+    with open(os.path.join(MODEL_DIR, "model_metadata.json"), "r") as f:
+        metadata = json.load(f)
+    logging.info("Metadados carregados com sucesso.")
+    if "model_version" in metadata:
+        logging.info(f"Versão do modelo: {metadata['model_version']}")
+
+except FileNotFoundError as e:
+    logging.error(f"Arquivo de modelo ou metadados não encontrado: {e}")
+    raise
+except Exception as e:
+    logging.error(f"Erro ao carregar o modelo: {e}")
+    raise
+
+
 def handler(event, context):
     """
-    Manipulador Lambda que será chamado em cada requisição.
+    Função handler do AWS Lambda ou teste local.
     """
     try:
-        # Se o evento vier do API Gateway, o corpo estará em event['body']
-        body = json.loads(event['body'])
-    except (KeyError, TypeError):
-        # Caso event já seja um dicionário (ex.: chamada direta/local)
-        body = event
+        # Detecta se está vindo do API Gateway (body é string)
+        if isinstance(event, dict) and "body" in event:
+            body = json.loads(event["body"])
+        else:
+            body = event
 
-    # Log da entrada recebida
-    logging.info(f"Entrada recebida: {body}")
+        logging.info(f"Entrada recebida: {body}")
 
-    # **Pré-processamento**: prepare os dados de entrada para o modelo
-    # Supondo que o JSON de entrada tenha um campo "data" contendo as features
-    input_data = body.get("data")
-    # Exemplo: converter para formato esperado pelo modelo (lista dentro de lista para uma amostra)
-    # Aqui assumimos que input_data já é uma lista/array de valores numéricos
-    data_for_prediction = [input_data]
+        # Pega os dados da entrada
+        input_data = body.get("data")
+        if input_data is None:
+            raise ValueError("Campo 'data' não encontrado na requisição.")
 
-    # (Você pode adicionar passos de normalização, codificação, etc., conforme necessário usando metadata)
+        # Converte para numpy array para facilitar reshape
+        input_array = np.array(input_data, dtype=float)
 
-    # **Inferência**: use o modelo carregado para prever resultados
-    prediction = model.predict(data_for_prediction)
-    output = prediction.tolist()  # converter numpy array para list, se necessário
+        # Ajusta forma da entrada
+        expected_features = getattr(model, "n_features_in_", None)
+        if expected_features is not None and input_array.ndim == 1:
+            if input_array.shape[0] != expected_features:
+                logging.warning(
+                    f"Ajustando entrada: modelo espera {expected_features} features, "
+                    f"mas recebeu {input_array.shape[0]}"
+                )
+            input_array = input_array.reshape(1, -1)  # (1, n_features)
+        elif input_array.ndim == 0:
+            # Caso entrada seja um valor único
+            input_array = input_array.reshape(1, 1)
 
-    # Log da saída produzida
-    logging.info(f"Predição gerada: {output}")
+        # Faz a predição
+        prediction = model.predict(input_array)
+        output = prediction.tolist()
 
-    # Monta a resposta HTTP (formato compatível com Lambda Proxy Integrations)
-    response = {
-        "statusCode": 200,
-        "body": json.dumps({"prediction": output[0]})
+        logging.info(f"Predição gerada: {output}")
+
+        # Resposta compatível com API Gateway
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"prediction": output[0]})
+        }
+
+    except Exception as e:
+        logging.error(f"Erro ao processar requisição: {e}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
+
+
+# Teste local
+if __name__ == "__main__":
+    evento_teste = {
+        "data": [1.0, 2.5, 3.3, 4.7]  # entrada de teste
     }
-    return response
+    print(handler(evento_teste, None))
