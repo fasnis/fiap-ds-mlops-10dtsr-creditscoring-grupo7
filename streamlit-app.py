@@ -19,9 +19,9 @@ def mock_score_prediction(data):
 def call_real_api(data_dict):
     import requests
 
-    url = "https://endereco-api.com/predict"
+    url = "https://y5fnbkvuc7.execute-api.us-east-1.amazonaws.com/prod/predict"
     headers = {
-        "Authorization": "Bearer TOKEN",
+        "x-api-key": "Q5KZwt1B9c48VPynBfLUl6URsGBQxA5s3aE0QYMz",
         "Content-Type": "application/json"
     }
 
@@ -65,9 +65,9 @@ if uploaded_file:
             st.error("O CSV deve conter as colunas esperadas no formato correto.")
         else:
             with st.spinner("Processando..."):
-                df[["credit_score", "risco"]] = df.apply(mock_score_prediction, axis=1, result_type="expand")
+                #df[["credit_score", "risco"]] = df.apply(mock_score_prediction, axis=1, result_type="expand")
                 #SUBSTITUIR POR CHAMADA REAL DA API
-                # df[["credit_score", "risco"]] = df.apply(lambda row: call_real_api(row.to_dict()), axis=1, result_type="expand")
+                df[["credit_score", "risco"]] = df.apply(lambda row: call_real_api(row.to_dict()), axis=1, result_type="expand")
 
             st.success("Dados processados com sucesso!")
             st.dataframe(df[expected_fields + ["credit_score", "risco"]])
@@ -86,8 +86,8 @@ st.subheader("Opção 2: Preenchimento Manual")
 
 with st.form("manual_input"):
     Age = st.number_input("Idade", 18, 100, 33)
-    Annual_Income = st.number_input("Renda Anual (R$)", 0.0, 500000.0, 50000.0)
-    Monthly_Inhand_Salary = st.number_input("Salário Mensal (R$)", 0.0, 100000.0, 4166.67)
+    Annual_Income = st.number_input("Renda Anual (R$)", 0, 500000, 50000)
+    Monthly_Inhand_Salary = st.number_input("Salário Mensal (R$)", 0.0, 100000, 4166)
     Num_Bank_Accounts = st.number_input("Nº de Contas Bancárias", 0, 20, 3)
     Num_Credit_Card = st.number_input("Nº de Cartões de Crédito", 0, 10, 2)
     Interest_Rate = st.number_input("Taxa de Juros (%)", 0.0, 50.0, 12.5)
@@ -125,9 +125,9 @@ with st.form("manual_input"):
         }
 
         with st.spinner("Consultando score..."):
-            score, risco = mock_score_prediction(input_data)
+            #score, risco = mock_score_prediction(input_data)
             # SUBSTITUIR POR CHAMADA REAL DA API
-            # score, risco = call_real_api(input_data)
+            score, risco = call_real_api(input_data)
         st.success("Consulta realizada com sucesso!")
         st.markdown(f"""
         ### Resultado:
