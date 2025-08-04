@@ -86,8 +86,8 @@ st.subheader("Opção 2: Preenchimento Manual")
 
 with st.form("manual_input"):
     Age = st.number_input("Idade", 18, 100, 33)
-    Annual_Income = st.number_input("Renda Anual (R$)", 0, 500000, 50000)
-    Monthly_Inhand_Salary = st.number_input("Salário Mensal (R$)", 0.0, 100000, 4166)
+    Annual_Income = st.number_input("Renda Anual (R$)", 0.0, 500000.0, 50000.0)
+    Monthly_Inhand_Salary = st.number_input("Salário Mensal (R$)", 0.0, 100000.0, 4166.0)
     Num_Bank_Accounts = st.number_input("Nº de Contas Bancárias", 0, 20, 3)
     Num_Credit_Card = st.number_input("Nº de Cartões de Crédito", 0, 10, 2)
     Interest_Rate = st.number_input("Taxa de Juros (%)", 0.0, 50.0, 12.5)
@@ -134,3 +134,4 @@ with st.form("manual_input"):
         - **Score de Crédito:** {score}  
         - **Nível de Risco:** {risco}
         """)
+
